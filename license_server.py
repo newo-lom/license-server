@@ -61,6 +61,7 @@ def activate():
 
 
 @app.route("/verify", methods=["POST"])
+@app.route("/verify", methods=["POST"])
 def verify():
     payload = request.get_json()
     license_key = payload.get("license_key")
@@ -74,14 +75,40 @@ def verify():
         return jsonify({"status": "error", "message": "Invalid license"}), 404
 
     record = db[license_key]
-    if hwid not in record.get("activated_hwids", []):
-        return jsonify({"status": "error", "message": "License not activated on this computer"}), 403
-
     expiry = datetime.datetime.strptime(record["expiry"], "%Y-%m-%d").date()
+
+    # --- Check expiry
     if expiry < datetime.date.today():
         return jsonify({"status": "error", "message": "License expired"}), 403
 
-    return jsonify({"status": "ok", "message": "License verified", "expiry": record["expiry"]})
+    # --- Activation tracking
+    hwids = record.get("activated_hwids", [])
+    max_activations = record.get("max_activations", 2)
+
+    if hwid not in hwids:
+        # Auto-register this device if limit not exceeded
+        if len(hwids) >= max_activations:
+            return jsonify({
+                "status": "error",
+                "message": "Activation limit reached. Please deactivate another device first."
+            }), 403
+
+        hwids.append(hwid)
+        record["activated_hwids"] = hwids
+        db[license_key] = record
+        save_db(db)
+
+    # --- Build full response with all details
+    return jsonify({
+        "status": "ok",
+        "message": "License verified successfully",
+        "customer": record.get("customer", "Unknown"),
+        "product": record.get("product", "Unknown Product"),
+        "expiry": record["expiry"],
+        "activated_hwids": record.get("activated_hwids", []),
+        "max_activations": record.get("max_activations", 2),
+        "activations_used": len(record.get("activated_hwids", []))
+    })
 
 
 @app.route("/", methods=["GET"])
