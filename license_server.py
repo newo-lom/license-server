@@ -2,8 +2,11 @@ from flask import Flask, request, jsonify
 import json, os, datetime
 
 app = Flask(__name__)
+
 LICENSE_DB = "licenses.json"
 
+
+# === Utility Functions ===
 def load_db():
     if not os.path.exists(LICENSE_DB):
         with open(LICENSE_DB, "w") as f:
@@ -11,31 +14,39 @@ def load_db():
     with open(LICENSE_DB, "r") as f:
         return json.load(f)
 
+
 def save_db(data):
     with open(LICENSE_DB, "w") as f:
         json.dump(data, f, indent=4)
 
+
+# === API Endpoints ===
 @app.route("/activate", methods=["POST"])
 def activate():
     payload = request.get_json()
     license_key = payload.get("license_key")
     hwid = payload.get("hwid")
 
+    if not license_key or not hwid:
+        return jsonify({"status": "error", "message": "Missing license key or HWID"}), 400
+
     db = load_db()
     if license_key not in db:
-        return jsonify({"status": "error", "message": "Invalid license key"}), 400
+        return jsonify({"status": "error", "message": "Invalid license key"}), 404
 
     record = db[license_key]
+
+    # Check expiry
     expiry = datetime.datetime.strptime(record["expiry"], "%Y-%m-%d").date()
     if expiry < datetime.date.today():
         return jsonify({"status": "error", "message": "License expired"}), 403
 
     hwids = record.get("activated_hwids", [])
-    max_activations = record.get("max_activations", 2)
+    max_activations = record.get("max_activations", 1)
 
     if hwid not in hwids:
         if len(hwids) >= max_activations:
-            return jsonify({"status": "error", "message": "Maximum activations reached"}), 403
+            return jsonify({"status": "error", "message": "Activation limit reached"}), 403
         hwids.append(hwid)
         record["activated_hwids"] = hwids
         db[license_key] = record
@@ -45,8 +56,9 @@ def activate():
         "status": "ok",
         "message": "License activated successfully",
         "expiry": record["expiry"],
-        "remaining": max_activations - len(hwids)
+        "customer": record["customer"]
     })
+
 
 @app.route("/verify", methods=["POST"])
 def verify():
@@ -54,19 +66,28 @@ def verify():
     license_key = payload.get("license_key")
     hwid = payload.get("hwid")
 
-    db = load_db()
-    record = db.get(license_key)
-    if not record:
-        return jsonify({"status": "error", "message": "Invalid license"}), 400
+    if not license_key or not hwid:
+        return jsonify({"status": "error", "message": "Missing license key or HWID"}), 400
 
+    db = load_db()
+    if license_key not in db:
+        return jsonify({"status": "error", "message": "Invalid license"}), 404
+
+    record = db[license_key]
     if hwid not in record.get("activated_hwids", []):
-        return jsonify({"status": "error", "message": "Not activated on this machine"}), 403
+        return jsonify({"status": "error", "message": "License not activated on this computer"}), 403
 
     expiry = datetime.datetime.strptime(record["expiry"], "%Y-%m-%d").date()
     if expiry < datetime.date.today():
         return jsonify({"status": "error", "message": "License expired"}), 403
 
-    return jsonify({"status": "ok", "message": "License valid", "expiry": record["expiry"]})
+    return jsonify({"status": "ok", "message": "License verified", "expiry": record["expiry"]})
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "running", "message": "License Server is online"})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
