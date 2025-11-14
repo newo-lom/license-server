@@ -61,7 +61,6 @@ def activate():
 
 
 @app.route("/verify", methods=["POST"])
-@app.route("/verify", methods=["POST"])
 def verify():
     payload = request.get_json()
     license_key = payload.get("license_key")
@@ -103,7 +102,8 @@ def verify():
         "status": "ok",
         "message": "License verified successfully",
         "customer": record.get("customer", "Unknown"),
-        "product": record.get("product", "Unknown Product"),
+        "product": record.get("product", "Lombardi Print Studio Pro"),
+        "version": record.get("version", "1.0.0"),
         "expiry": record["expiry"],
         "activated_hwids": record.get("activated_hwids", []),
         "max_activations": record.get("max_activations", 2),
@@ -114,6 +114,16 @@ def verify():
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"status": "running", "message": "License Server is online"})
+
+
+@app.route("/debug/licenses", methods=["GET"])
+def debug_view_licenses():
+    """View the live license file contents (debug use only)."""
+    if not os.path.exists(LICENSE_DB):
+        return jsonify({"error": "licenses.json not found"}), 404
+    with open(LICENSE_DB, "r") as f:
+        data = json.load(f)
+    return jsonify(data)
 
 
 if __name__ == "__main__":
