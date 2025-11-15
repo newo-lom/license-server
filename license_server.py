@@ -112,7 +112,7 @@ def verify():
         "status": "ok",
         "message": "License verified successfully",
         "customer": record.get("customer", "Unknown"),
-        "product": record.get("product", "Lombardi Print Studio Pro"),
+        "product": record.get("product", "DTF & Screen Printing Manager Pro"),
         "version": record.get("version", "1.0.0"),
         "expiry": record["expiry"],
         "activated_hwids": record.get("activated_hwids", []),
