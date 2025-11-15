@@ -129,12 +129,35 @@ def home():
 
 @app.route("/debug/licenses", methods=["GET"])
 def debug_view_licenses():
+    """Nicely formatted HTML view of the current license database (debug use only)."""
+    import json, html
+    
     if not os.path.exists(LICENSE_DB):
         return jsonify({"error": f"{LICENSE_DB} not found"}), 404
+
     with open(LICENSE_DB, "r") as f:
         data = json.load(f)
-    print(f"🧩 DEBUG — Reading from {os.path.abspath(LICENSE_DB)}")
-    return jsonify(data)
+
+    # Create a readable HTML layout
+    html_content = "<h2>📜 License Database (Debug View)</h2>"
+    html_content += "<table border='1' cellpadding='6' style='border-collapse:collapse;font-family:Segoe UI, sans-serif;'>"
+    html_content += "<tr><th>License Key</th><th>Customer</th><th>Expiry</th><th>Activations</th><th>Activated HWIDs</th><th>Product</th></tr>"
+
+    for key, record in data.items():
+        html_content += f"""
+        <tr>
+            <td><b>{html.escape(key)}</b></td>
+            <td>{html.escape(record.get('customer', ''))}</td>
+            <td>{html.escape(record.get('expiry', ''))}</td>
+            <td>{record.get('max_activations', '')}</td>
+            <td>{', '.join(record.get('activated_hwids', [])) or '-'}</td>
+            <td>{html.escape(record.get('product', ''))}</td>
+        </tr>
+        """
+
+    html_content += "</table>"
+
+    return html_content
 
 # ==========================================================
 # 🟩 ADMIN ENDPOINT: Create New License
