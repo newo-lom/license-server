@@ -121,55 +121,6 @@ def verify():
     })
 
 
-@app.route("/create_license", methods=["POST"])
-def create_license():
-    """Admin endpoint to create new license keys remotely."""
-    import random, string
-
-    # ✅ Security check — prevent public abuse
-    secret = request.args.get("key")
-    if secret != "Newo_Lomb_DTF_2025":  # 🔒 change this to something private
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-
-    payload = request.get_json()
-    customer = payload.get("customer")
-    expiry = payload.get("expiry", "2026-12-31")
-    max_activations = int(payload.get("max_activations", 1))
-    product = payload.get("product", "Lombardi Print Studio Pro")
-    version = payload.get("version", "1.0.0")
-
-    # Validate customer name
-    if not customer:
-        return jsonify({"status": "error", "message": "Missing customer name"}), 400
-
-    # ✅ Generate random license key (format: ABCD-EFGH-123)
-    chars = string.ascii_uppercase + string.digits
-    random_key = "".join(random.choices(chars, k=8))
-    license_key = f"{random_key[:4]}-{random_key[4:]}-{random.randint(100,999)}"
-
-    # Load DB and save new license
-    db = load_db()
-    db[license_key] = {
-        "customer": customer,
-        "expiry": expiry,
-        "max_activations": max_activations,
-        "activated_hwids": [],
-        "product": product,
-        "version": version
-    }
-    save_db(db)
-
-    print(f"✅ Created new license for {customer}: {license_key}")
-
-    return jsonify({
-        "status": "ok",
-        "message": "License created successfully",
-        "license_key": license_key,
-        "customer": customer,
-        "expiry": expiry,
-        "max_activations": max_activations
-    })
-
 
 @app.route("/", methods=["GET"])
 def home():
@@ -188,6 +139,9 @@ def debug_view_licenses():
 # ==========================================================
 # 🟩 ADMIN ENDPOINT: Create New License
 # ==========================================================
+# ==========================================================
+# 🟩 ADMIN ENDPOINT: Create New License
+# ==========================================================
 @app.route("/create_license", methods=["POST"])
 def create_license():
     key = request.args.get("key")
@@ -203,7 +157,6 @@ def create_license():
     if not customer or not expiry:
         return jsonify({"status": "error", "message": "Missing customer or expiry"}), 400
 
-    # Generate a simple license key (you can make this more complex if you wish)
     import random, string
     license_key = "".join(random.choices(string.ascii_uppercase + string.digits, k=6)) + "-XYZ"
 
@@ -222,6 +175,7 @@ def create_license():
         "message": "License created successfully",
         "license_key": license_key
     })
+
 
 
 
