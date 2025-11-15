@@ -185,6 +185,43 @@ def debug_view_licenses():
     print(f"🧩 DEBUG — Reading from {os.path.abspath(LICENSE_DB)}")
     return jsonify(data)
 
+# ==========================================================
+# 🟩 ADMIN ENDPOINT: Create New License
+# ==========================================================
+@app.route("/create_license", methods=["POST"])
+def create_license():
+    key = request.args.get("key")
+    if key != "Newo_Lomb_DTF_2025":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    payload = request.get_json()
+    customer = payload.get("customer")
+    expiry = payload.get("expiry")
+    max_activations = payload.get("max_activations", 1)
+    product = payload.get("product", "DTF & Screen Printing Manager Pro")
+
+    if not customer or not expiry:
+        return jsonify({"status": "error", "message": "Missing customer or expiry"}), 400
+
+    # Generate a simple license key (you can make this more complex if you wish)
+    import random, string
+    license_key = "".join(random.choices(string.ascii_uppercase + string.digits, k=6)) + "-XYZ"
+
+    db = load_db()
+    db[license_key] = {
+        "customer": customer,
+        "expiry": expiry,
+        "max_activations": max_activations,
+        "activated_hwids": [],
+        "product": product
+    }
+    save_db(db)
+
+    return jsonify({
+        "status": "ok",
+        "message": "License created successfully",
+        "license_key": license_key
+    })
 
 
 
