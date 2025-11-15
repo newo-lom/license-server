@@ -3,7 +3,9 @@ import json, os, datetime
 
 app = Flask(__name__)
 
-LICENSE_DB = "licenses.json"
+LICENSE_DB = os.path.join(os.path.dirname(__file__), "licenses.json")
+
+
 
 
 # === Utility Functions ===
@@ -14,10 +16,18 @@ def load_db():
     with open(LICENSE_DB, "r") as f:
         return json.load(f)
 
-
 def save_db(data):
-    with open(LICENSE_DB, "w") as f:
-        json.dump(data, f, indent=4)
+    """Save the license database to a persistent location (works with Render Disks)."""
+    # ✅ If using a Render Disk, ensure the /data folder exists
+    os.makedirs(os.path.dirname(LICENSE_DB), exist_ok=True)
+
+    try:
+        with open(LICENSE_DB, "w") as f:
+            json.dump(data, f, indent=4)
+        print(f"✅ Saved updated license database: {LICENSE_DB}")
+        print(json.dumps(data, indent=2))
+    except Exception as e:
+        print(f"❌ Error saving license database: {e}")
 
 
 # === API Endpoints ===
@@ -118,12 +128,14 @@ def home():
 
 @app.route("/debug/licenses", methods=["GET"])
 def debug_view_licenses():
-    """View the live license file contents (debug use only)."""
     if not os.path.exists(LICENSE_DB):
-        return jsonify({"error": "licenses.json not found"}), 404
+        return jsonify({"error": f"{LICENSE_DB} not found"}), 404
     with open(LICENSE_DB, "r") as f:
         data = json.load(f)
+    print(f"🧩 DEBUG — Reading from {os.path.abspath(LICENSE_DB)}")
     return jsonify(data)
+
+
 
 
 if __name__ == "__main__":
