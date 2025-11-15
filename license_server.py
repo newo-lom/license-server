@@ -232,6 +232,26 @@ def create_license():
         "license_key": license_key
     })
 
+@app.route("/delete_license", methods=["POST"])
+def delete_license():
+    from flask import request
+
+    data = request.get_json()
+    key = data.get("license_key")
+    admin_key = request.args.get("key", "")
+
+    if admin_key != "Newo_Lomb_DTF_2025":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    db = load_db()
+    if key not in db:
+        return jsonify({"status": "error", "message": "License not found"}), 404
+
+    del db[key]
+    save_db(db)
+    print(f"🗑️ Deleted license: {key}")
+
+    return jsonify({"status": "ok", "message": f"License {key} deleted successfully."})
 
 
 
