@@ -120,6 +120,39 @@ def verify():
         "activations_used": len(record.get("activated_hwids", []))
     })
 
+@app.route("/deactivate", methods=["POST"])
+def deactivate():
+    """Remove a specific HWID from a license (free up activation slot)."""
+    payload = request.get_json()
+    license_key = payload.get("license_key")
+    hwid = payload.get("hwid")
+
+    if not license_key or not hwid:
+        return jsonify({"status": "error", "message": "Missing license key or HWID"}), 400
+
+    db = load_db()
+    if license_key not in db:
+        return jsonify({"status": "error", "message": "Invalid license key"}), 404
+
+    record = db[license_key]
+    hwids = record.get("activated_hwids", [])
+
+    if hwid in hwids:
+        hwids.remove(hwid)
+        record["activated_hwids"] = hwids
+        db[license_key] = record
+        save_db(db)
+        print(f"🔄 Deactivated HWID {hwid} for license {license_key}")
+        return jsonify({
+            "status": "ok",
+            "message": f"Device {hwid} removed successfully.",
+            "remaining_activations": record["max_activations"] - len(hwids)
+        })
+
+    return jsonify({
+        "status": "error",
+        "message": "HWID not found under this license."
+    }), 404
 
 
 @app.route("/", methods=["GET"])
