@@ -234,24 +234,45 @@ def create_license():
 
 @app.route("/delete_license", methods=["POST"])
 def delete_license():
+    """
+    Deletes a license by key.
+    Supports both JSON body and URL parameters.
+    Example browser link:
+      https://license-server-2-yy9u.onrender.com/delete_license?key=Newo_Lomb_DTF_2025&license_key=ABC123-XYZ
+    Example JSON body (Postman):
+      { "license_key": "ABC123-XYZ" }
+    """
+
     from flask import request
 
-    data = request.get_json()
-    key = data.get("license_key")
+    # Accept both JSON and query string
+    data = request.get_json(silent=True) or {}
+    license_key = data.get("license_key") or request.args.get("license_key")
     admin_key = request.args.get("key", "")
 
+    # --- Verify admin access
     if admin_key != "Newo_Lomb_DTF_2025":
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        return jsonify({"status": "error", "message": "❌ Unauthorized request"}), 403
 
+    if not license_key:
+        return jsonify({"status": "error", "message": "⚠️ Missing license_key"}), 400
+
+    # --- Load database
     db = load_db()
-    if key not in db:
-        return jsonify({"status": "error", "message": "License not found"}), 404
 
-    del db[key]
+    if license_key not in db:
+        return jsonify({"status": "error", "message": f"License '{license_key}' not found"}), 404
+
+    # --- Delete and save
+    del db[license_key]
     save_db(db)
-    print(f"🗑️ Deleted license: {key}")
 
-    return jsonify({"status": "ok", "message": f"License {key} deleted successfully."})
+    print(f"🗑️ License deleted: {license_key}")
+
+    return jsonify({
+        "status": "ok",
+        "message": f"✅ License '{license_key}' deleted successfully."
+    }), 200
 
 
 
