@@ -5,6 +5,12 @@ app = Flask(__name__)
 
 LICENSE_DB = os.path.join(os.path.dirname(__file__), "licenses.json")
 
+import random, string
+
+def generate_license_key(prefix="DTF", suffix="XYZ"):
+    """Generate professional-style license key (e.g., DTF-9QK2-X8WR-2TLP-XYZ)."""
+    parts = ["".join(random.choices(string.ascii_uppercase + string.digits, k=4)) for _ in range(3)]
+    return f"{prefix}-{'-'.join(parts)}-{suffix}"
 
 
 
@@ -214,7 +220,8 @@ def create_license():
         return jsonify({"status": "error", "message": "Missing customer or expiry"}), 400
 
     import random, string
-    license_key = "".join(random.choices(string.ascii_uppercase + string.digits, k=6)) + "-XYZ"
+    license_key = generate_license_key()
+
 
     db = load_db()
     db[license_key] = {
