@@ -3,7 +3,7 @@
 # Lombardi Print Studio Pro
 # ==========================================================
 from flask import Flask, request, jsonify
-import datetime, os
+import datetime, os, ssl
 from pymongo import MongoClient
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -19,7 +19,14 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "license_db")
 
-client = MongoClient(MONGO_URI)
+# ✅ FIXED: Force TLS 1.2 and allow flexible SSL (required for Render + Atlas)
+client = MongoClient(
+    MONGO_URI,
+    tls=True,
+    tlsAllowInvalidCertificates=True,
+    ssl_cert_reqs=ssl.CERT_NONE
+)
+
 db = client[DB_NAME]
 licenses_col = db["licenses"]
 
