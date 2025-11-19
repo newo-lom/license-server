@@ -19,11 +19,14 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "license_db")
 
-# ✅ FIXED for PyMongo 5+ / Python 3.13
+import certifi  # add this to ensure proper CA bundle
+
 client = MongoClient(
     MONGO_URI,
     tls=True,
-    tlsAllowInvalidCertificates=True
+    tlsCAFile=certifi.where(),  # ✅ ensures proper cert chain
+    tlsAllowInvalidCertificates=False,
+    tlsVersion=ssl.PROTOCOL_TLSv1_2  # ✅ enforce TLS 1.2
 )
 
 db = client[DB_NAME]
