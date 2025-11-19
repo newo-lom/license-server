@@ -19,12 +19,11 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "license_db")
 
-# ✅ FIXED: Force TLS 1.2 and allow flexible SSL (required for Render + Atlas)
+# ✅ FIXED for PyMongo 5+ / Python 3.13
 client = MongoClient(
     MONGO_URI,
     tls=True,
-    tlsAllowInvalidCertificates=True,
-    ssl_cert_reqs=ssl.CERT_NONE
+    tlsAllowInvalidCertificates=True
 )
 
 db = client[DB_NAME]
